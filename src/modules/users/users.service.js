@@ -78,9 +78,40 @@ async function logIn(req, res, next) {
   }
 }
 
-// 토큰 리프레시
+// 토큰 재발급
 async function refreshToken(req, res, next) {
   try {
+    const { prevRefreshToken } = req.body;
+    const { sub, email, nickname } = jwt.verify(prevRefreshToken, jwtSecretKey);
+    // 받아온 payload에서 iat, exp는 제외(있으면 중복값이라 에러 발생)
+    const payload = { sub, email, nickname };
+
+    const accessToken = jwt.sign(payload, jwtSecretKey, { expiresIn: '30m' });
+    const refreshToken = jwt.sign(payload, jwtSecretKey, { expiresIn: '2d' });
+
+    const data = { accessToken, refreshToken };
+
+    res.status(200).json(data);
+  } catch (error) {
+    if (error instanceof jwt.JsonWebTokenError) {
+      const error = new Error('400/Invalid token');
+
+      return next(error);
+    }
+    next(error);
+  }
+}
+
+// 내 정보 조회
+async function getMe(req, res, next) {
+  try {
+    const userId = req.userId;
+    const me = await prisma.user.findUnique({
+      where: { id: userId },
+      omit: { encryptedPassword: true },
+    });
+
+    res.status(200).json(me);
   } catch (error) {
     next(error);
   }
@@ -124,8 +155,9 @@ const userService = {
   signUp,
   logIn,
   refreshToken,
-  isAvailableNickname,
+  getMe,
   getUsers,
+  isAvailableNickname,
 };
 
 module.exports = userService;
