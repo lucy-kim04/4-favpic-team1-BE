@@ -1,5 +1,5 @@
 function errorHandler(err, req, res, next) {
-  console.err('에러 발생...', err);
+  console.error('에러 발생...', err);
 
   let [statusCode, message] = err.message.split('/');
   statusCode = Number(statusCode);

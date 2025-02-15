@@ -8,6 +8,7 @@ const { errorHandler } = require('./modules/index.middlewares');
 const app = express(); // 서버 생성
 const PORT = 5050;
 
+app.use(express.json());
 app.use(morgan('combined'));
 app.use(router);
 app.use(errorHandler);

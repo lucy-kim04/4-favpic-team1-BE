@@ -1,0 +1,19 @@
+POST  http://localhost:5050/users/check-nickname
+Content-Type: application/json
+
+{
+  "nickname":"별명임",
+}
+
+###
+POST  http://localhost:5050/users/sign-up
+Content-Type: application/json
+
+{
+  "email":"test@test.com",
+  "nickname":"테스트",
+  "password":"11111111"
+}
+
+###
+GET http://localhost:5050/users
