@@ -2,7 +2,7 @@ POST  http://localhost:5050/users/check-nickname
 Content-Type: application/json
 
 {
-  "nickname":"별명임",
+  "nickname":"11",
 }
 
 ###
@@ -12,6 +12,15 @@ Content-Type: application/json
 {
   "email":"test@test.com",
   "nickname":"테스트",
+  "password":"11111111"
+}
+
+###
+POST  http://localhost:5050/users/log-in
+Content-Type: application/json
+
+{
+  "email":"test@test.com",
   "password":"11111111"
 }
 

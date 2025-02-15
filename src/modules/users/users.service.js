@@ -1,7 +1,11 @@
 const validator = require('validator');
 const prisma = require('../../db/prisma/client');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
+const jwtSecretKey = process.env.JWT_SECRET_KEY;
+
+// 회원가입
 async function signUp(req, res, next) {
   try {
     const { email, password, nickname } = req.body;
@@ -41,13 +45,40 @@ async function signUp(req, res, next) {
   }
 }
 
+// 로그인
 async function logIn(req, res, next) {
   try {
+    const { email, password } = req.body;
+
+    // 1. 가입된 유저인지 확인
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) throw new Error('400/Non existing user');
+
+    // 2. 비밀번호가 맞는지 확인
+    const isPasswordCorrect = await bcrypt.compare(
+      password,
+      user.encryptedPassword
+    );
+    if (!isPasswordCorrect) throw new Error('400/Wrong password');
+
+    // 3. 토큰 발급
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      nickname: user.nickname,
+    };
+    const accessToken = jwt.sign(payload, jwtSecretKey, { expiresIn: '30m' });
+    const refreshToken = jwt.sign(payload, jwtSecretKey, { expiresIn: '2d' });
+
+    const resData = { accessToken, refreshToken };
+
+    res.status(200).json(resData);
   } catch (error) {
     next(error);
   }
 }
 
+// 토큰 리프레시
 async function refreshToken(req, res, next) {
   try {
   } catch (error) {
@@ -55,6 +86,7 @@ async function refreshToken(req, res, next) {
   }
 }
 
+// 사용자 목록 조회
 async function getUsers(req, res, next) {
   try {
     const users = await prisma.user.findMany({
@@ -66,7 +98,8 @@ async function getUsers(req, res, next) {
   }
 }
 
-async function checkNicknameExists(req, res, next) {
+// 닉네임 중복 체크
+async function isAvailableNickname(req, res, next) {
   try {
     const nickname = req.body.nickname;
 
@@ -78,9 +111,9 @@ async function checkNicknameExists(req, res, next) {
     });
 
     if (existingNickname) {
-      res.status(200).send('Nickname already in use');
+      res.status(200).send(false);
     } else {
-      res.status(200).send('Available nickname');
+      res.status(200).send(true);
     }
   } catch (error) {
     next(error);
@@ -91,7 +124,7 @@ const userService = {
   signUp,
   logIn,
   refreshToken,
-  checkNicknameExists,
+  isAvailableNickname,
   getUsers,
 };
 
