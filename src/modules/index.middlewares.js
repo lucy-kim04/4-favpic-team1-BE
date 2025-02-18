@@ -1,3 +1,5 @@
+const jwt = require('jsonwebtoken');
+
 function errorHandler(err, req, res, next) {
   console.error('에러 발생...', err);
 

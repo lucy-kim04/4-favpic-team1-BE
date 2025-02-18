@@ -130,7 +130,7 @@ async function getUsers(req, res, next) {
 }
 
 // 닉네임 중복 체크
-async function isAvailableNickname(req, res, next) {
+async function checkIsAvailableNickname(req, res, next) {
   try {
     const nickname = req.body.nickname;
 
@@ -157,7 +157,7 @@ const userService = {
   refreshToken,
   getMe,
   getUsers,
-  isAvailableNickname,
+  checkIsAvailableNickname,
 };
 
 module.exports = userService;
