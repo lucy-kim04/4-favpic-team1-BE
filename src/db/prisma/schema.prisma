@@ -14,11 +14,92 @@ datasource db {
 }
 
 model User {
-  id                String   @id @default(uuid())
-  email             String   @unique
+  id                String        @id @default(uuid())
+  email             String        @unique
   encryptedPassword String
-  nickname          String   @unique
+  nickname          String        @unique
   point             Int
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  lastDrawingTime   DateTime?
+  cards             Card[]
+  cardEditions      CardEdition[]
+  shops             Shop[]
+  purchases         Purchase[]
+  exchanges         Exchange[]
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+}
+
+model Card {
+  id             String        @id @default(uuid())
+  user           User          @relation(fields: [userId], references: [id])
+  userId         String
+  name           String
+  price          Int
+  grade          String
+  genre          String
+  imgUrl         String?
+  description    String
+  issuedQuantity Int
+  cardEditions   CardEdition[]
+  createdAt      DateTime      @default(now())
+}
+
+model CardEdition {
+  id         String        @id @default(uuid())
+  number     Int
+  status     EditionStatus @default(inPossesion)
+  card       Card          @relation(fields: [cardId], references: [id])
+  cardId     String
+  user       User          @relation(fields: [userId], references: [id])
+  userId     String
+  shop       Shop?         @relation(fields: [shopId], references: [id])
+  shopId     String?
+  purchaseId String?
+  purchase   Purchase?     @relation(fields: [purchaseId], references: [id])
+  exchangeId String        @unique
+  exchange   Exchange      @relation(fields: [exchangeId], references: [id])
+  createdAt  DateTime      @default(now())
+}
+
+model Shop {
+  id           String        @id @default(uuid())
+  user         User          @relation(fields: [userId], references: [id])
+  userId       String
+  price        Int
+  cardId       String
+  cardEditions CardEdition[]
+  createdAt    DateTime      @default(now())
+}
+
+model Purchase {
+  id           String        @id @default(uuid())
+  buyer        User          @relation(fields: [buyerId], references: [id])
+  buyerId      String
+  sellerId     String
+  price        Int
+  cardEditions CardEdition[]
+  createdAt    DateTime      @default(now())
+}
+
+model Exchange {
+  id             String         @id @default(uuid())
+  proposer       User           @relation(fields: [proposerId], references: [id])
+  proposerId     String
+  proposeEdition CardEdition?
+  salesEditionId String
+  sellerId       String
+  content        String
+  status         ExchangeStatus @default(pending)
+  createdAt      DateTime       @default(now())
+}
+
+enum ExchangeStatus {
+  pending
+  approved
+}
+
+enum EditionStatus {
+  inPossesion
+  onSales
+  waitingExchange
 }

@@ -151,6 +151,20 @@ async function checkIsAvailableNickname(req, res, next) {
   }
 }
 
+// 카드 발행
+async function createCard(req, res, next) {
+  const intPrice = Number(req.body.price);
+  const intIssuedQuantity = Number(req.body.issuedQuantity);
+  const newImgUrl = !!req.file
+    ? 'http://localhost:5500/static/' + req.file.filename
+    : undefined;
+
+  try {
+  } catch (error) {
+    next(error);
+  }
+}
+
 const userService = {
   signUp,
   logIn,
@@ -158,6 +172,7 @@ const userService = {
   getMe,
   getUsers,
   checkIsAvailableNickname,
+  createCard,
 };
 
 module.exports = userService;
