@@ -56,13 +56,16 @@ model CardEdition {
 }
 
 model Shop {
-  id           String        @id @default(uuid())
-  userId       String
-  user         User          @relation(fields: [userId], references: [id])
-  price        Int
-  cardId       String
-  createdAt    DateTime      @default(now())
-  cardEditions CardEdition[]
+  id            String        @id @default(uuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  price         Int
+  exchangeGrade String
+  exchangeGenre String
+  exchangeDesc  String
+  cardId        String
+  createdAt     DateTime      @default(now())
+  cardEditions  CardEdition[]
 }
 
 enum EditionStatus {
