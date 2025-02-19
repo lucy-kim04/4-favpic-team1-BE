@@ -55,7 +55,7 @@ async function getMyCardsOfGallery(req, res, next) {
         description: true,
         price: true,
         imgUrl: true,
-        _count: { select: { cardEditions: { where: { id: userId } } } },
+        _count: { select: { cardEditions: { where: { userId } } } },
       },
     });
     res.status(200).json(cards);
@@ -64,9 +64,39 @@ async function getMyCardsOfGallery(req, res, next) {
   }
 }
 
+// 카드 상세 조회
+async function getMyCardOfGallery(req, res, next) {
+  try {
+    const userId = req.userId;
+    const cardId = req.params.cardId;
+    console.log(cardId);
+    console.log(userId);
+
+    const card = await prisma.card.findUnique({
+      where: { id: cardId },
+      select: {
+        id: true,
+        name: true,
+        genre: true,
+        grade: true,
+        description: true,
+        price: true,
+        imgUrl: true,
+        cardEditions: true,
+        _count: { select: { cardEditions: { where: { userId } } } },
+      },
+    });
+
+    res.status(200).json(card);
+  } catch (error) {
+    next(error);
+  }
+}
+
 const cardsService = {
   createCard,
   getMyCardsOfGallery,
+  getMyCardOfGallery,
 };
 
 module.exports = cardsService;

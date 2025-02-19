@@ -21,5 +21,6 @@ const uploadMiddleware = upload.single('imgUrl');
 
 cardsRouter.post('/', uploadMiddleware, cardsService.createCard);
 cardsRouter.get('/me/gallery', cardsService.getMyCardsOfGallery);
+cardsRouter.get('/me/gallery/:cardId', cardsService.getMyCardOfGallery);
 
 module.exports = cardsRouter;
