@@ -4,5 +4,7 @@ const shopsService = require('./shops.service');
 const shopsRouter = express.Router();
 
 shopsRouter.post('/:shopId/exchange', shopsService.createExchange);
+shopsRouter.post('/', shopsService.createShop);
+shopsRouter.get('/', shopsService.getShops);
 
 module.exports = shopsRouter;
