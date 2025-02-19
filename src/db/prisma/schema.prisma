@@ -14,11 +14,59 @@ datasource db {
 }
 
 model User {
-  id                String   @id @default(uuid())
-  email             String   @unique
+  id                String        @id @default(uuid())
+  email             String        @unique
   encryptedPassword String
-  nickname          String   @unique
+  nickname          String        @unique
   point             Int
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  lastDrawingTime   DateTime?
+  cards             Card[]
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  cardEditions      CardEdition[]
+  shops             Shop[]
+}
+
+model Card {
+  id             String        @id @default(uuid())
+  user           User          @relation(fields: [userId], references: [id])
+  userId         String
+  name           String
+  price          Int
+  grade          String
+  genre          String
+  imgUrl         String?
+  description    String
+  issuedQuantity Int
+  createdAt      DateTime      @default(now())
+  cardEditions   CardEdition[]
+}
+
+model CardEdition {
+  id        String        @id @default(uuid())
+  number    Int
+  status    EditionStatus @default(inPossesion)
+  userId    String
+  user      User          @relation(fields: [userId], references: [id])
+  cardId    String
+  card      Card          @relation(fields: [cardId], references: [id])
+  shopId    String?
+  shop      Shop?         @relation(fields: [shopId], references: [id])
+  createdAt DateTime      @default(now())
+}
+
+model Shop {
+  id           String        @id @default(uuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id])
+  price        Int
+  cardId       String
+  createdAt    DateTime      @default(now())
+  cardEditions CardEdition[]
+}
+
+enum EditionStatus {
+  inPossesion
+  onSales
+  waitingExchange
 }
