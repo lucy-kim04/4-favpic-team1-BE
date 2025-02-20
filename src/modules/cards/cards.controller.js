@@ -3,13 +3,13 @@ const cardsService = require('./cards.service');
 const cardsRouter = express.Router();
 const multer = require('multer');
 const { loggedInOnly } = require('../index.middlewares');
+const middlewares = require('../index.middlewares');
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'public/');
   },
   filename: function (req, file, cb) {
-    console.log(file);
     const extension = file.originalname.split('.').slice(-1)[0];
     cb(null, 'product' + '-' + Date.now() + '.' + extension);
   },
@@ -19,8 +19,21 @@ const upload = multer({ storage: storage });
 
 const uploadMiddleware = upload.single('imgUrl');
 
-cardsRouter.post('/', uploadMiddleware, cardsService.createCard);
-cardsRouter.get('/me/gallery', cardsService.getMyCardsOfGallery);
-cardsRouter.get('/me/gallery/:cardId', cardsService.getMyCardOfGallery);
+cardsRouter.post(
+  '/',
+  middlewares.loggedInOnly,
+  uploadMiddleware,
+  cardsService.createCard
+);
+cardsRouter.get(
+  '/me/gallery',
+  middlewares.loggedInOnly,
+  cardsService.getMyCardsOfGallery
+);
+cardsRouter.get(
+  '/me/gallery/:cardId',
+  middlewares.loggedInOnly,
+  cardsService.getMyCardOfGallery
+);
 
 module.exports = cardsRouter;

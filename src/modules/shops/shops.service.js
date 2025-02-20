@@ -88,7 +88,6 @@ async function getShops(req, res, next) {
         : queryOrderBy === '높은 가격순'
         ? { price: 'desc' }
         : { price: 'asc' };
-    console.log(req.query);
     const shops = await prisma.shop.findMany({
       where: {
         card: {
@@ -105,15 +104,37 @@ async function getShops(req, res, next) {
         price: true,
         salesCount: true,
         _count: { select: { cardEditions: true } },
-        user: { select: { nickname: true } },
+        // user: { select: { nickname: true } },
         card: {
-          select: { name: true, grade: true, genre: true, imgUrl: true },
+          select: {
+            name: true,
+            grade: true,
+            genre: true,
+            imgUrl: true,
+            user: { select: { nickname: true } },
+          },
         },
       },
       orderBy,
     });
 
-    res.status(200).json(shops);
+    const resData = shops.map((shop) => {
+      const newShop = {
+        id: shop.id,
+        name: shop.card.name,
+        imgUrl: shop.card.imgUrl,
+        grade: shop.card.grade,
+        genre: shop.card.genre,
+        nickname: shop.card.user.nickname,
+        price: shop.price,
+        remainingCount: shop._count.cardEditions,
+        salesCount: shop.salesCount,
+      };
+
+      return newShop;
+    });
+
+    res.status(200).json(resData);
   } catch (error) {
     next(error);
   }

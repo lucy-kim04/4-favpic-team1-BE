@@ -58,6 +58,7 @@ async function getMyCardsOfGallery(req, res, next) {
         orderBy: { createdAt: 'desc' },
         select: {
           id: true,
+          user: { select: { nickname: true } },
           name: true,
           genre: true,
           grade: true,
@@ -85,13 +86,12 @@ async function getMyCardOfGallery(req, res, next) {
   try {
     const userId = req.userId;
     const cardId = req.params.cardId;
-    console.log(cardId);
-    console.log(userId);
 
     const card = await prisma.card.findUnique({
       where: { id: cardId },
       select: {
         id: true,
+        user: { select: { nickname: true } },
         name: true,
         genre: true,
         grade: true,
@@ -106,6 +106,29 @@ async function getMyCardOfGallery(req, res, next) {
         },
       },
     });
+
+    const resData = {
+      id: card.id,
+      imgUrl: card.imgUrl,
+      nickname: card.user.nickname,
+      grade: card.grade,
+      genre: card.genre,
+      price: card.price,
+      reserveCount: card._count.cardEditions,
+      description: card.description,
+    };
+
+    res.status(200).json(resData);
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function getCard(req, res, next) {
+  try {
+    const cardId = req.params.cardId;
+
+    const card = await prisma.card.findUnique({ where: { id: cardId } });
 
     res.status(200).json(card);
   } catch (error) {
