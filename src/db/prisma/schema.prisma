@@ -40,6 +40,7 @@ model Card {
   issuedQuantity Int
   createdAt      DateTime      @default(now())
   cardEditions   CardEdition[]
+  shops          Shop[]
 }
 
 model CardEdition {
@@ -56,13 +57,18 @@ model CardEdition {
 }
 
 model Shop {
-  id           String        @id @default(uuid())
-  userId       String
-  user         User          @relation(fields: [userId], references: [id])
-  price        Int
-  cardId       String
-  createdAt    DateTime      @default(now())
-  cardEditions CardEdition[]
+  id            String        @id @default(uuid())
+  cardId        String
+  card          Card          @relation(fields: [cardId], references: [id])
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  price         Int
+  salesCount    Int           @default(0)
+  exchangeGrade String?
+  exchangeGenre String?
+  exchangeDesc  String?
+  createdAt     DateTime      @default(now())
+  cardEditions  CardEdition[]
 }
 
 enum EditionStatus {

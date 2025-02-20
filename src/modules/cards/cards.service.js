@@ -15,18 +15,22 @@ async function createCard(req, res, next) {
 
     const data = { ...req.body, userId };
 
-    // 카드 생성
-    const card = await prisma.card.create({ data });
+    // interactive $transaction 적용
+    const card = await prisma.$transaction(async (tx) => {
+      // 카드 생성
+      const card = await tx.card.create({ data });
 
-    // 카드 에디션 생성
-    for (let i = 0; i < card.issuedQuantity; i++) {
-      const editionData = {
-        userId,
-        cardId: card.id,
-        number: i + 1,
-      };
-      await prisma.cardEdition.create({ data: editionData });
-    }
+      // 카드 에디션 생성
+      for (let i = 0; i < card.issuedQuantity; i++) {
+        const editionData = {
+          userId,
+          cardId: card.id,
+          number: i + 1,
+        };
+        await tx.cardEdition.create({ data: editionData });
+      }
+      return card;
+    });
 
     res.status(201).json(card);
   } catch (error) {
@@ -39,25 +43,37 @@ async function getMyCardsOfGallery(req, res, next) {
   try {
     const userId = req.userId;
 
-    const cardIds = await prisma.cardEdition.groupBy({
-      where: { userId },
-      by: ['cardId'],
+    // $transaction 사용
+    const cards = await prisma.$transaction(async (tx) => {
+      const cardIds = await tx.cardEdition.groupBy({
+        where: { userId },
+        by: ['cardId'],
+      });
+      const cardIdsArray = cardIds.map((cardId) => cardId.cardId);
+      const cards = await tx.card.findMany({
+        where: {
+          id: { in: cardIdsArray },
+          cardEditions: { some: { status: 'inPossesion' } },
+        },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          name: true,
+          genre: true,
+          grade: true,
+          description: true,
+          price: true,
+          imgUrl: true,
+          _count: {
+            select: {
+              cardEditions: { where: { userId, status: 'inPossesion' } },
+            },
+          },
+        },
+      });
+      return cards;
     });
-    const cardIdsArray = cardIds.map((cardId) => cardId.cardId);
-    const cards = await prisma.card.findMany({
-      where: { id: { in: cardIdsArray } },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        name: true,
-        genre: true,
-        grade: true,
-        description: true,
-        price: true,
-        imgUrl: true,
-        _count: { select: { cardEditions: { where: { userId } } } },
-      },
-    });
+
     res.status(200).json(cards);
   } catch (error) {
     next(error);
@@ -83,7 +99,11 @@ async function getMyCardOfGallery(req, res, next) {
         price: true,
         imgUrl: true,
         cardEditions: true,
-        _count: { select: { cardEditions: { where: { userId } } } },
+        _count: {
+          select: {
+            cardEditions: { where: { userId, status: 'inPossesion' } },
+          },
+        },
       },
     });
 
