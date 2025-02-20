@@ -35,7 +35,7 @@ async function signUp(req, res, next) {
 
     // 4. 유저 생성(포인트 추가)
     const user = await prisma.user.create({
-      data: { email, encryptedPassword, nickname, point: 0 },
+      data: { email, encryptedPassword, nickname, point: 50 },
       omit: { encryptedPassword: true },
     });
 
