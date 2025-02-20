@@ -75,7 +75,22 @@ async function getMyCardsOfGallery(req, res, next) {
       return cards;
     });
 
-    res.status(200).json(cards);
+    const resData = cards.map((card) => {
+      const newCard = {
+        id: card.id,
+        imgUrl: card.imgUrl,
+        name: card.name,
+        grade: card.grade,
+        genre: card.genre,
+        nickname: card.user.nickname,
+        price: card.price,
+        reserveCount: card._count.cardEditions,
+      };
+
+      return newCard;
+    });
+
+    res.status(200).json(resData);
   } catch (error) {
     next(error);
   }
