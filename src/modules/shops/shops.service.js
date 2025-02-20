@@ -70,7 +70,36 @@ async function createShop(req, res, next) {
 // shop 목록 조회
 async function getShops(req, res, next) {
   try {
+    const {
+      orderBy: queryOrderBy,
+      grade: queryGrade,
+      genre: queryGenre,
+      onSale: queryOnSale,
+      keyword,
+    } = req.query;
+
+    const genre = queryGenre !== '장르' ? queryGenre : undefined;
+    const grade = queryGrade !== '등급' ? queryGrade : undefined;
+    const orderBy =
+      queryOrderBy === '최신 순'
+        ? { createdAt: 'desc' }
+        : queryOrderBy === '오래된 순'
+        ? { createdAt: 'asc' }
+        : queryOrderBy === '높은 가격순'
+        ? { price: 'desc' }
+        : { price: 'asc' };
+    console.log(req.query);
     const shops = await prisma.shop.findMany({
+      where: {
+        card: {
+          grade,
+          genre,
+          OR: [
+            { name: { contains: keyword, mode: 'insensitive' } },
+            // { description: { contains: keyword, mode: 'insensitive' } },
+          ],
+        },
+      },
       select: {
         id: true,
         price: true,
@@ -81,6 +110,7 @@ async function getShops(req, res, next) {
           select: { name: true, grade: true, genre: true, imgUrl: true },
         },
       },
+      orderBy,
     });
 
     res.status(200).json(shops);
