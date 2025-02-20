@@ -140,6 +140,49 @@ async function getShops(req, res, next) {
   }
 }
 
-const shopsService = { createExchange, createShop, getShops };
+// shop 상세 조회
+async function getShop(req, res, next) {
+  try {
+    const shopId = req.params.shopId;
+
+    const shop = await prisma.shop.findUnique({
+      where: { id: shopId },
+      select: {
+        id: true,
+        price: true,
+        salesCount: true,
+        _count: { select: { cardEditions: true } },
+        // user: { select: { nickname: true } },
+        card: {
+          select: {
+            name: true,
+            grade: true,
+            genre: true,
+            imgUrl: true,
+            user: { select: { nickname: true } },
+          },
+        },
+      },
+    });
+
+    const newShop = {
+      id: shop.id,
+      name: shop.card.name,
+      imgUrl: shop.card.imgUrl,
+      grade: shop.card.grade,
+      genre: shop.card.genre,
+      nickname: shop.card.user.nickname,
+      price: shop.price,
+      remainingCount: shop._count.cardEditions,
+      salesCount: shop.salesCount,
+    };
+
+    res.status(200).json(newShop);
+  } catch (error) {
+    next(error);
+  }
+}
+
+const shopsService = { createExchange, createShop, getShops, getShop };
 
 module.exports = shopsService;
