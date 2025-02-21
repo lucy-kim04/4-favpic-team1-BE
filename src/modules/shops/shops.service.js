@@ -78,6 +78,8 @@ async function getShops(req, res, next) {
       keyword,
     } = req.query;
 
+    console.log(keyword);
+
     const genre = queryGenre !== '장르' ? queryGenre : undefined;
     const grade = queryGrade !== '등급' ? queryGrade : undefined;
     const orderBy =

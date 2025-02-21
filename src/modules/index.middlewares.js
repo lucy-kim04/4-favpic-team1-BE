@@ -25,10 +25,8 @@ function authentication(req, res, next) {
     if (!authorization) return next();
     const accessToken = authorization.split('Bearer ')[1];
     if (!accessToken) return res.status(400).send('Wrong token received...');
-
     const { sub } = jwt.verify(accessToken, process.env.JWT_SECRET_KEY);
     req.userId = sub;
-
     next();
   } catch (error) {
     // 인증 실패
@@ -43,7 +41,7 @@ function authentication(req, res, next) {
     if (error.name === 'JsonWebTokenError') {
       return res.status(401).json({
         code: 401,
-        message: 'Invalid token',
+        message: 'Invalid token in authentication',
       });
     }
   }

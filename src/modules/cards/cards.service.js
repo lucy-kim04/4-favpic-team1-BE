@@ -43,6 +43,26 @@ async function getMyCardsOfGallery(req, res, next) {
   try {
     const userId = req.userId;
 
+    const {
+      orderBy: queryOrderBy,
+      grade: queryGrade,
+      genre: queryGenre,
+      keyword,
+    } = req.query;
+
+    console.log(req.query);
+
+    const genre = queryGenre !== '장르' ? queryGenre : undefined;
+    const grade = queryGrade !== '등급' ? queryGrade : undefined;
+    const orderBy =
+      queryOrderBy === '최신 순'
+        ? { createdAt: 'desc' }
+        : queryOrderBy === '오래된 순'
+        ? { createdAt: 'asc' }
+        : queryOrderBy === '높은 가격순'
+        ? { price: 'desc' }
+        : { price: 'asc' };
+
     // $transaction 사용
     const cards = await prisma.$transaction(async (tx) => {
       const cardIds = await tx.cardEdition.groupBy({
@@ -54,8 +74,14 @@ async function getMyCardsOfGallery(req, res, next) {
         where: {
           id: { in: cardIdsArray },
           cardEditions: { some: { status: 'inPossesion' } },
+          grade,
+          genre,
+          OR: [
+            { name: { contains: keyword, mode: 'insensitive' } },
+            // { description: { contains: keyword, mode: 'insensitive' } },
+          ],
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         select: {
           id: true,
           user: { select: { nickname: true } },
@@ -63,6 +89,7 @@ async function getMyCardsOfGallery(req, res, next) {
           genre: true,
           grade: true,
           description: true,
+          cardEditions: true,
           price: true,
           imgUrl: true,
           _count: {
@@ -72,10 +99,13 @@ async function getMyCardsOfGallery(req, res, next) {
           },
         },
       });
+
       return cards;
     });
 
+    const userSummary = { COMMON: 0, RARE: 0, 'SUPER RARE': 0, LEGENDARY: 0 };
     const resData = cards.map((card) => {
+      userSummary[card.grade] += 1;
       const newCard = {
         id: card.id,
         imgUrl: card.imgUrl,
@@ -90,7 +120,9 @@ async function getMyCardsOfGallery(req, res, next) {
       return newCard;
     });
 
-    res.status(200).json(resData);
+    const result = { cards: resData, userSummary };
+
+    res.status(200).json(result);
   } catch (error) {
     next(error);
   }
@@ -124,6 +156,7 @@ async function getMyCardOfGallery(req, res, next) {
 
     const resData = {
       id: card.id,
+      name: card.name,
       imgUrl: card.imgUrl,
       nickname: card.user.nickname,
       grade: card.grade,

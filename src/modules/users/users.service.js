@@ -67,8 +67,8 @@ async function logIn(req, res, next) {
       email: user.email,
       nickname: user.nickname,
     };
-    const accessToken = jwt.sign(payload, jwtSecretKey, { expiresIn: '30m' });
-    const refreshToken = jwt.sign(payload, jwtSecretKey, { expiresIn: '2d' });
+    const accessToken = jwt.sign(payload, jwtSecretKey, { expiresIn: '1h' });
+    const refreshToken = jwt.sign(payload, jwtSecretKey, { expiresIn: '7d' });
 
     const resData = { accessToken, refreshToken };
 
@@ -82,19 +82,21 @@ async function logIn(req, res, next) {
 async function refreshToken(req, res, next) {
   try {
     const { prevRefreshToken } = req.body;
+    console.log(prevRefreshToken, jwtSecretKey);
     const { sub, email, nickname } = jwt.verify(prevRefreshToken, jwtSecretKey);
+    console.log(sub);
     // 받아온 payload에서 iat, exp는 제외(있으면 중복값이라 에러 발생)
     const payload = { sub, email, nickname };
-
-    const accessToken = jwt.sign(payload, jwtSecretKey, { expiresIn: '30m' });
-    const refreshToken = jwt.sign(payload, jwtSecretKey, { expiresIn: '2d' });
+    const accessToken = jwt.sign(payload, jwtSecretKey, { expiresIn: '1h' });
+    const refreshToken = jwt.sign(payload, jwtSecretKey, { expiresIn: '7d' });
 
     const data = { accessToken, refreshToken };
 
     res.status(200).json(data);
   } catch (error) {
+    console.log(error);
     if (error instanceof jwt.JsonWebTokenError) {
-      const error = new Error('400/Invalid token');
+      const error = new Error('400/Invalid token in refresh');
 
       return next(error);
     }
