@@ -151,6 +151,9 @@ async function getShop(req, res, next) {
         id: true,
         price: true,
         salesCount: true,
+        exchangeGrade: true,
+        exchangeGenre: true,
+        exchangeDesc: true,
         _count: { select: { cardEditions: true } },
         // user: { select: { nickname: true } },
         card: {
@@ -159,6 +162,7 @@ async function getShop(req, res, next) {
             grade: true,
             genre: true,
             imgUrl: true,
+            description: true,
             user: { select: { nickname: true } },
           },
         },
@@ -172,9 +176,13 @@ async function getShop(req, res, next) {
       grade: shop.card.grade,
       genre: shop.card.genre,
       nickname: shop.card.user.nickname,
+      description: shop.card.description,
       price: shop.price,
       remainingCount: shop._count.cardEditions,
       salesCount: shop.salesCount,
+      exchangeGrade: shop.exchangeGrade,
+      exchangeGenre: shop.exchangeGenre,
+      exchangeDesc: shop.exchangeDesc,
     };
 
     res.status(200).json(newShop);
