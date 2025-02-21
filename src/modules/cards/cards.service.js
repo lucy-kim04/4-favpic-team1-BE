@@ -89,6 +89,7 @@ async function getMyCardsOfGallery(req, res, next) {
           genre: true,
           grade: true,
           description: true,
+          cardEditions: true,
           price: true,
           imgUrl: true,
           _count: {
@@ -98,10 +99,13 @@ async function getMyCardsOfGallery(req, res, next) {
           },
         },
       });
+
       return cards;
     });
 
+    const userSummary = { COMMON: 0, RARE: 0, 'SUPER RARE': 0, LEGENDARY: 0 };
     const resData = cards.map((card) => {
+      userSummary[card.grade] += 1;
       const newCard = {
         id: card.id,
         imgUrl: card.imgUrl,
@@ -116,7 +120,9 @@ async function getMyCardsOfGallery(req, res, next) {
       return newCard;
     });
 
-    res.status(200).json(resData);
+    const result = { cards: resData, userSummary };
+
+    res.status(200).json(result);
   } catch (error) {
     next(error);
   }

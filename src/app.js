@@ -11,8 +11,8 @@ const PORT = 5050;
 
 app.use(cors());
 app.use(express.json());
-app.use(morgan('combined'));
 app.use(middlewares.authentication);
+app.use(morgan('combined'));
 app.use('/static', express.static('public')); // 이미지 경로 설정
 app.use(router);
 app.use(middlewares.errorHandler);
