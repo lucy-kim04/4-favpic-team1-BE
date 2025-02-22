@@ -172,18 +172,6 @@ async function getMyCardOfGallery(req, res, next) {
   }
 }
 
-async function getCard(req, res, next) {
-  try {
-    const cardId = req.params.cardId;
-
-    const card = await prisma.card.findUnique({ where: { id: cardId } });
-
-    res.status(200).json(card);
-  } catch (error) {
-    next(error);
-  }
-}
-
 const cardsService = {
   createCard,
   getMyCardsOfGallery,
