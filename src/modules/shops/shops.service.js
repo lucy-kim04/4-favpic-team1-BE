@@ -193,6 +193,99 @@ async function getShop(req, res, next) {
   }
 }
 
-const shopsService = { createExchange, createShop, getShops, getShop };
+// 상점에서 카드 구매하기
+async function purchaseCards(req, res, next) {
+  try {
+    const { purchaseCount, price } = req.body;
+    const userId = req.userId;
+    const shopId = req.params.shopId;
+
+    // #1. 상점의 잔여 수량이 구매 수량 이상인지 확인하기
+    const shop = await prisma.shop.findUnique({
+      where: { id: shopId },
+      select: {
+        include: { user: { select: { id: true, point: true } } },
+        salesCount: true,
+        cardEditions: { orderBy: { number: 'asc' } },
+      },
+    });
+    const salesCount = shop.salesCount;
+    if (purchaseCount > salesCount)
+      throw new Error('400/Not sufficient quantity');
+
+    // #2. 구매자의 보유 포인트가 총 가격 이상인지 확인하기
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { point: true },
+    });
+    const totalAmount = purchaseCount * price;
+    const buyerPoint = user.point;
+
+    if (totalAmount > buyerPoint) throw new Error('400/Not sufficient point');
+
+    // #3. $transaction으로 구매 로직 수행
+    const purchase = await prisma.$transaction(async (tx) => {
+      // 3-1. 상점 정보 업데이트하기
+      // - salesCount에서 purchaseCount 차감
+      await tx.shop.update({
+        where: { id: shopId },
+        data: { salesCount: salesCount - purchaseCount },
+      });
+      // 3-2. 사용자 정보 업데이트하기
+      // - 구매자: totalAmount만큼 포인트 차감
+      await tx.user.update({
+        where: { id: userId },
+        data: { point: buyerPoint - totalAmount },
+      });
+      // - 판매자: totalAmount만큼 포인트 증가
+      await tx.user.update({
+        where: { id: shop.user.id },
+        data: { point: shop.user.point + totalAmount },
+      });
+
+      // 3-3. purchase (테이블) 생성
+      // - 데이터: buyerId, sellerId, cardId, cardEditions, price, purchaseCount
+      const purchase = await tx.purchase.create({
+        data: { buyerId: userId, sellerId: shop.user.id, price, purchaseCount },
+      });
+
+      // 3-4. 판매한 에디션들의 정보 업데이트하기
+      // 상점 에디션들 중 구매 수량만큼 에디션을 뽑아서 id 배열로 만들기
+      const purchaseCardEditions = shop.cardEditions.slice(0, purchaseCount);
+      const editionIds = purchaseCardEditions.map((edition) => edition.id);
+      // - 상점 ID 삭제
+      // - 소유자 ID를 구매자 변경
+      // - 상태를 inPossesion으로 변경
+      // - purchaseId에 생성한 purchase의 id를 연결
+      const editionData = {
+        shopId: null,
+        userId,
+        status: 'inPossesion',
+        purchaseId: purchase.id,
+      };
+      const willUpdateEditionsPromises = editionIds.map(async (editionId) =>
+        tx.cardEdition.updateMany({
+          data: editionData,
+          where: { id: editionId },
+        })
+      );
+      await Promise.all(willUpdateEditionsPromises);
+
+      return purchase;
+    });
+
+    res.status(201).json(purchase);
+  } catch (error) {
+    next(error);
+  }
+}
+
+const shopsService = {
+  createExchange,
+  createShop,
+  getShops,
+  getShop,
+  purchaseCards,
+};
 
 module.exports = shopsService;
