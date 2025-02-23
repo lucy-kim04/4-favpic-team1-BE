@@ -8,14 +8,14 @@ async function createExchange(req, res, next) {
   }
 }
 
-// shop 생성
+// 상점shop 생성
 async function createShop(req, res, next) {
   try {
     const userId = req.userId;
     const cardId = req.body.cardId;
 
     // 재고 수량 확인
-    const result = await prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
         cardEditions: {
@@ -25,7 +25,7 @@ async function createShop(req, res, next) {
       },
     });
 
-    const quantity = result.cardEditions.length;
+    const quantity = user.cardEditions.length;
     const isSufficientQuantity = quantity >= req.body.salesCount;
     if (!isSufficientQuantity) throw new Error('400/Not sufficient quantity');
 
@@ -41,10 +41,7 @@ async function createShop(req, res, next) {
 
       // #2. 에디션 업데이트
       // 업데이트해야할 에디션들의 number를 확인
-      const tempCardEditions = result.cardEditions.slice(
-        0,
-        req.body.salesCount
-      );
+      const tempCardEditions = user.cardEditions.slice(0, req.body.salesCount);
       const editionNumbers = tempCardEditions.map((el) => el.number);
       const editionData = { shopId: shop.id, status: 'onSales' };
 
@@ -192,6 +189,46 @@ async function getShop(req, res, next) {
   }
 }
 
+// 상점 삭제하기(판매 내리기)
+async function deleteShop(req, res, next) {
+  try {
+    const shopId = req.params.shopId;
+
+    // #1. 상점에 있는 cardEditions 정보 업데이트
+    await prisma.$transaction(async (tx) => {
+      const shop = await tx.shop.findUnique({
+        where: { id: shopId },
+        select: { cardEditions: true },
+      });
+
+      const editionIds = shop.cardEditions.map((edition) => edition.id);
+      console.log(editionIds);
+      // - 상점 ID 삭제
+      // - status를 inPossesion으로 변경
+      const editionData = {
+        shopId: null,
+        status: 'inPossesion',
+      };
+      const willUpdateEditionsPromises = editionIds.map(async (editionId) =>
+        tx.cardEdition.updateMany({
+          data: editionData,
+          where: { id: editionId },
+        })
+      );
+      await Promise.all(willUpdateEditionsPromises);
+
+      // TODO: #2. 교환 제시받은 목록이 있을 경우 해당 로직도 반영해야 함
+
+      // #3. 상점 삭제
+      await tx.shop.delete({ where: { id: shopId } });
+    });
+
+    res.status(204).send('Delete complete');
+  } catch (error) {
+    next(error);
+  }
+}
+
 // 상점에서 카드 구매하기
 async function purchaseCards(req, res, next) {
   try {
@@ -299,6 +336,7 @@ const shopsService = {
   createShop,
   getShops,
   getShop,
+  deleteShop,
   purchaseCards,
 };
 

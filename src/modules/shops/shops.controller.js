@@ -13,5 +13,10 @@ shopsRouter.post(
   middlewares.loggedInOnly,
   shopsService.purchaseCards
 );
+shopsRouter.delete(
+  '/:shopId',
+  middlewares.loggedInOnly,
+  shopsService.deleteShop
+);
 
 module.exports = shopsRouter;
