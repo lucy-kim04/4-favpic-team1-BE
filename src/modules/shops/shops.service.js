@@ -1,13 +1,6 @@
 const { contains } = require('validator');
 const prisma = require('../../db/prisma/client');
 
-async function createExchange(req, res, next) {
-  try {
-  } catch (error) {
-    next(error);
-  }
-}
-
 // 상점shop 생성
 async function createShop(req, res, next) {
   try {
@@ -332,7 +325,6 @@ async function purchaseCards(req, res, next) {
 }
 
 const shopsService = {
-  createExchange,
   createShop,
   getShops,
   getShop,

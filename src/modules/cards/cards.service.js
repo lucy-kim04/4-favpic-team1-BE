@@ -38,7 +38,7 @@ async function createCard(req, res, next) {
   }
 }
 
-// 나의 갤러리 카드 목록 조회
+// 마이갤러리 카드 목록 조회
 // 사용자가 보유한 카드 에디션들 중 status가 inPossesion인 것
 async function getMyCardsOfGallery(req, res, next) {
   try {
@@ -231,7 +231,7 @@ async function getMyCardsOfSales(req, res, next) {
   }
 }
 
-// 카드 상세 조회
+// 마이갤러리 카드 상세 조회
 async function getMyCardOfGallery(req, res, next) {
   try {
     const userId = req.userId;
