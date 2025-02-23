@@ -50,8 +50,6 @@ async function getMyCardsOfGallery(req, res, next) {
       keyword,
     } = req.query;
 
-    console.log(req.query);
-
     const genre = queryGenre !== '장르' ? queryGenre : undefined;
     const grade = queryGrade !== '등급' ? queryGrade : undefined;
     const orderBy =
@@ -89,7 +87,10 @@ async function getMyCardsOfGallery(req, res, next) {
           genre: true,
           grade: true,
           description: true,
-          cardEditions: true,
+          cardEditions: {
+            where: { userId, status: 'inPossesion' },
+            select: { card: { select: { grade: true } } },
+          },
           price: true,
           imgUrl: true,
           _count: {
@@ -103,9 +104,10 @@ async function getMyCardsOfGallery(req, res, next) {
       return cards;
     });
 
-    const userSummary = { COMMON: 0, RARE: 0, 'SUPER RARE': 0, LEGENDARY: 0 };
+    const totalEditions = [];
     const resData = cards.map((card) => {
-      userSummary[card.grade] += 1;
+      totalEditions.push(...card.cardEditions);
+
       const newCard = {
         id: card.id,
         imgUrl: card.imgUrl,
@@ -114,11 +116,14 @@ async function getMyCardsOfGallery(req, res, next) {
         genre: card.genre,
         nickname: card.user.nickname,
         price: card.price,
+        cardEditions: card.cardEditions,
         reserveCount: card._count.cardEditions,
       };
 
       return newCard;
     });
+    const userSummary = { COMMON: 0, RARE: 0, 'SUPER RARE': 0, LEGENDARY: 0 };
+    totalEditions.forEach((edition) => (userSummary[edition.card.grade] += 1));
 
     const result = { cards: resData, userSummary };
 
