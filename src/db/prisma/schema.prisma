@@ -25,6 +25,7 @@ model User {
   updatedAt         DateTime      @updatedAt
   cardEditions      CardEdition[]
   shops             Shop[]
+  Purchase          Purchase[]
 }
 
 model Card {
@@ -44,16 +45,18 @@ model Card {
 }
 
 model CardEdition {
-  id        String        @id @default(uuid())
-  number    Int
-  status    EditionStatus @default(inPossesion)
-  userId    String
-  user      User          @relation(fields: [userId], references: [id])
-  cardId    String
-  card      Card          @relation(fields: [cardId], references: [id])
-  shopId    String?
-  shop      Shop?         @relation(fields: [shopId], references: [id])
-  createdAt DateTime      @default(now())
+  id         String        @id @default(uuid())
+  number     Int
+  status     EditionStatus @default(inPossesion)
+  userId     String
+  user       User          @relation(fields: [userId], references: [id])
+  cardId     String
+  card       Card          @relation(fields: [cardId], references: [id])
+  shopId     String?
+  shop       Shop?         @relation(fields: [shopId], references: [id])
+  purchaseId String?
+  purchase   Purchase?     @relation(fields: [purchaseId], references: [id])
+  createdAt  DateTime      @default(now())
 }
 
 model Shop {
@@ -68,6 +71,16 @@ model Shop {
   exchangeGenre String?
   exchangeDesc  String?
   createdAt     DateTime      @default(now())
+  cardEditions  CardEdition[]
+}
+
+model Purchase {
+  id            String        @id @default(uuid())
+  buyer         User          @relation(fields: [buyerId], references: [id])
+  buyerId       String
+  sellerId      String
+  price         Int
+  purchaseCount Int
   cardEditions  CardEdition[]
 }
 
