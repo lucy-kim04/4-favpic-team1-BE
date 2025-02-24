@@ -274,27 +274,6 @@ async function purchaseCards(req, res, next) {
 
     if (totalAmount > buyerPoint) throw new Error('400/Not sufficient point');
 
-    // 필요한 값들을 찍어서 확인부터 해보자 - 충분히 테스트될때까지 조금만 남겨둘 것
-    // console.log('상점 정보:', shopId);
-    // console.log('구매자 정보:', buyer.nickname, buyer.point, userId);
-    // console.log(
-    //   '판매자 정보:',
-    //   shop.user.nickname,
-    //   shop.user.point,
-    //   shop.user.id
-    // );
-    // console.log('상점 잔여 수량:', remainingCount);
-    // console.log('구매수량/가격/총금액:', purchaseCount, price, totalAmount);
-    // console.log(
-    //   '판매 후 포인트 구매자/판매자:',
-    //   buyerPoint - totalAmount,
-    //   shop.user.point + totalAmount
-    // );
-
-    // const purchaseCardEditions = shop.cardEditions.slice(0, purchaseCount);
-    // const editionIds = purchaseCardEditions.map((edition) => edition.id);
-    // console.log(editionIds);
-
     // #3. $transaction으로 구매 로직 수행
     const purchase = await prisma.$transaction(async (tx) => {
       // 3-1. 사용자 정보 업데이트하기
@@ -354,27 +333,50 @@ async function proposeExchange(req, res, next) {
     const content = req.body.content;
     const cardId = req.body.cardId;
 
-    // #1. Exchange 생성하기
-    const exchange = await prisma.exchange.create({
-      data: {
-        content,
-        shopId,
-        proposerId: userId,
-        status: 'pending',
-      },
+    await prisma.$transaction(async (tx) => {
+      // #1. Exchange 생성하기
+      const exchange = await tx.exchange.create({
+        data: {
+          content,
+          shopId,
+          proposerId: userId,
+          status: 'pending',
+        },
+      });
+
+      // #2. 교환 제안자 카드 에디션의 상태를 waitingExchange로 변경, exchangeId 부여
+      const editions = await tx.cardEdition.findMany({
+        where: { userId, cardId },
+      });
+      const editionId = editions[0].id;
+      await tx.cardEdition.update({
+        where: { id: editionId },
+        data: { status: 'waitingExchange', exchangeId: exchange.id },
+      });
+
+      res.status(201).json(exchange);
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 교환 제안 취소하기
+async function cancelProposeExchange(req, res, next) {
+  const { editionId } = req.body;
+  try {
+    await prisma.$transaction(async (tx) => {
+      // #1. 해당 카드 에디션의 상태를 inPossesion으로 변경
+      await tx.cardEdition.update({
+        where: { id: editionId },
+        data: { status: 'inPossesion' },
+      });
+      // #2. exchange 삭제
+      const { exchangeId } = req.params;
+      await tx.exchange.delete({ where: { id: exchangeId } });
     });
 
-    // #2. 구매자 카드 에디션의 상태를 waitingExchange로 변경, exchangeId 부여
-    const editions = await prisma.cardEdition.findMany({
-      where: { userId, cardId },
-    });
-    const editionId = editions[0].id;
-    await prisma.cardEdition.update({
-      where: { id: editionId },
-      data: { status: 'waitingExchange', exchangeId: exchange.id },
-    });
-
-    res.status(201).json(exchange);
+    res.status(204).send('Delete success');
   } catch (error) {
     next(error);
   }
@@ -444,6 +446,7 @@ async function getMyExchangesOfShop(req, res, next) {
         id: true,
         cardEdition: {
           select: {
+            id: true,
             card: {
               select: {
                 imgUrl: true,
@@ -464,6 +467,8 @@ async function getMyExchangesOfShop(req, res, next) {
     const newExchanges = exchanges.map((exchange) => {
       const newExchange = {
         id: exchange.id,
+        editionId: exchange.cardEdition.id,
+        shopId: shopId,
         imgUrl: exchange.cardEdition.card.imgUrl,
         price: exchange.cardEdition.card.price,
         name: exchange.cardEdition.card.name,
@@ -493,6 +498,7 @@ const shopsService = {
   proposeExchange,
   getExchangesOfShop,
   getMyExchangesOfShop,
+  cancelProposeExchange,
 };
 
 module.exports = shopsService;
