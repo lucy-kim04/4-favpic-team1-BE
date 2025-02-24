@@ -144,6 +144,7 @@ async function getMyCardsOfSales(req, res, next) {
       orderBy: queryOrderBy,
       grade: queryGrade,
       genre: queryGenre,
+      onSale,
       keyword,
     } = req.query;
 
@@ -170,11 +171,9 @@ async function getMyCardsOfSales(req, res, next) {
         where: {
           id: { in: cardIdsArray },
           cardEditions: { some: { status: 'onSales' } },
-          grade,
-          genre,
           OR: [
-            { name: { contains: keyword, mode: 'insensitive' } },
-            // { description: { contains: keyword, mode: 'insensitive' } },
+            { grade, genre, name: { contains: keyword, mode: 'insensitive' } },
+            { grade, genre, user: { nickname: { contains: keyword } } },
           ],
         },
         orderBy,
