@@ -17,5 +17,20 @@ shopsRouter.delete(
   middlewares.loggedInOnly,
   shopsService.deleteShop
 );
+shopsRouter.post(
+  '/:shopId/exchanges',
+  middlewares.loggedInOnly,
+  shopsService.proposeExchange
+);
+shopsRouter.get(
+  '/:shopId/exchanges',
+  middlewares.loggedInOnly,
+  shopsService.getExchangesOfShop
+);
+shopsRouter.get(
+  '/:shopId/my-exchanges',
+  middlewares.loggedInOnly,
+  shopsService.getMyExchangesOfShop
+);
 
 module.exports = shopsRouter;

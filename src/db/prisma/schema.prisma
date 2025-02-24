@@ -26,6 +26,7 @@ model User {
   cardEditions      CardEdition[]
   shops             Shop[]
   Purchase          Purchase[]
+  exchanges         Exchange[]
 }
 
 model Card {
@@ -56,6 +57,8 @@ model CardEdition {
   shop       Shop?         @relation(fields: [shopId], references: [id])
   purchaseId String?
   purchase   Purchase?     @relation(fields: [purchaseId], references: [id])
+  exchangeId String?       @unique
+  exchange   Exchange?     @relation(fields: [exchangeId], references: [id])
   createdAt  DateTime      @default(now())
 }
 
@@ -70,6 +73,7 @@ model Shop {
   exchangeGrade String?
   exchangeGenre String?
   exchangeDesc  String?
+  exchanges     Exchange[]
   createdAt     DateTime      @default(now())
   cardEditions  CardEdition[]
 }
@@ -82,10 +86,28 @@ model Purchase {
   price         Int
   purchaseCount Int
   cardEditions  CardEdition[]
+  createdAt     DateTime      @default(now())
+}
+
+model Exchange {
+  id          String         @id @default(uuid())
+  content     String
+  status      ExchangeStatus @default(pending)
+  shopId      String
+  shop        Shop           @relation(fields: [shopId], references: [id])
+  proposerId  String
+  proposer    User           @relation(fields: [proposerId], references: [id])
+  createdAt   DateTime       @default(now())
+  cardEdition CardEdition?
 }
 
 enum EditionStatus {
   inPossesion
   onSales
   waitingExchange
+}
+
+enum ExchangeStatus {
+  pending
+  approved
 }

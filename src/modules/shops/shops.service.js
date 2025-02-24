@@ -65,7 +65,7 @@ async function getShops(req, res, next) {
       orderBy: queryOrderBy,
       grade: queryGrade,
       genre: queryGenre,
-      onSale: queryOnSale,
+      onSale,
       keyword,
     } = req.query;
 
@@ -83,11 +83,24 @@ async function getShops(req, res, next) {
         : { price: 'asc' };
     const shops = await prisma.shop.findMany({
       where: {
-        card: {
-          grade,
-          genre,
-          OR: [{ name: { contains: keyword, mode: 'insensitive' } }],
-        },
+        OR: [
+          {
+            card: {
+              grade,
+              genre,
+              OR: [{ name: { contains: keyword, mode: 'insensitive' } }],
+            },
+          },
+          {
+            AND: {
+              card: {
+                grade,
+                genre,
+              },
+              user: { nickname: { contains: keyword } },
+            },
+          },
+        ],
       },
       select: {
         id: true,
@@ -108,7 +121,16 @@ async function getShops(req, res, next) {
       orderBy,
     });
 
-    const resData = shops.map((shop) => {
+    let filteredShops;
+    if (onSale === '판매 중') {
+      filteredShops = shops.filter((shop) => shop._count.cardEditions !== 0);
+    } else if (onSale === '판매 완료') {
+      filteredShops = shops.filter((shop) => shop._count.cardEditions === 0);
+    } else {
+      filteredShops = shops;
+    }
+
+    const resData = filteredShops.map((shop) => {
       const newShop = {
         id: shop.id,
         name: shop.card.name,
@@ -324,12 +346,153 @@ async function purchaseCards(req, res, next) {
   }
 }
 
+// 카드 교환 제안하기
+async function proposeExchange(req, res, next) {
+  try {
+    const userId = req.userId;
+    const shopId = req.params.shopId;
+    const content = req.body.content;
+    const cardId = req.body.cardId;
+
+    // #1. Exchange 생성하기
+    const exchange = await prisma.exchange.create({
+      data: {
+        content,
+        shopId,
+        proposerId: userId,
+        status: 'pending',
+      },
+    });
+
+    // #2. 구매자 카드 에디션의 상태를 waitingExchange로 변경, exchangeId 부여
+    const editions = await prisma.cardEdition.findMany({
+      where: { userId, cardId },
+    });
+    const editionId = editions[0].id;
+    await prisma.cardEdition.update({
+      where: { id: editionId },
+      data: { status: 'waitingExchange', exchangeId: exchange.id },
+    });
+
+    res.status(201).json(exchange);
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 상점의 교환 제시 목록 조회
+async function getExchangesOfShop(req, res, next) {
+  try {
+    const shopId = req.params.shopId;
+
+    const exchanges = await prisma.exchange.findMany({
+      where: { shopId, status: 'pending' },
+      select: {
+        id: true,
+        cardEdition: {
+          select: {
+            card: {
+              select: {
+                imgUrl: true,
+                name: true,
+                price: true,
+                grade: true,
+                genre: true,
+                user: { select: { nickname: true } },
+              },
+            },
+          },
+        },
+        content: true,
+        proposerId: true,
+      },
+    });
+
+    const newExchanges = exchanges.map((exchange) => {
+      const newExchange = {
+        id: exchange.id,
+        imgUrl: exchange.cardEdition.card.imgUrl,
+        name: exchange.cardEdition.card.name,
+        price: exchange.cardEdition.card.price,
+        grade: exchange.cardEdition.card.grade,
+        genre: exchange.cardEdition.card.genre,
+        nickname: exchange.cardEdition.card.user.nickname,
+        content: exchange.content,
+        paidPrice: 0,
+        proposerId: exchange.proposerId,
+      };
+
+      return newExchange;
+    });
+
+    res.status(200).json(newExchanges);
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 상점의 '내가 제시한 교환 목록' 조회
+async function getMyExchangesOfShop(req, res, next) {
+  try {
+    const userId = req.userId;
+    const shopId = req.params.shopId;
+    console.log(userId, shopId);
+
+    const exchanges = await prisma.exchange.findMany({
+      where: { shopId, proposerId: userId, status: 'pending' },
+      select: {
+        id: true,
+        cardEdition: {
+          select: {
+            card: {
+              select: {
+                imgUrl: true,
+                name: true,
+                price: true,
+                grade: true,
+                genre: true,
+                user: { select: { nickname: true } },
+              },
+            },
+          },
+        },
+        content: true,
+        proposerId: true,
+      },
+    });
+
+    const newExchanges = exchanges.map((exchange) => {
+      const newExchange = {
+        id: exchange.id,
+        imgUrl: exchange.cardEdition.card.imgUrl,
+        price: exchange.cardEdition.card.price,
+        name: exchange.cardEdition.card.name,
+        grade: exchange.cardEdition.card.grade,
+        genre: exchange.cardEdition.card.genre,
+        nickname: exchange.cardEdition.card.user.nickname,
+        content: exchange.content,
+        paidPrice: 0,
+        proposerId: exchange.proposerId,
+      };
+
+      return newExchange;
+    });
+
+    res.status(200).json(newExchanges);
+  } catch (error) {
+    next(error);
+  }
+}
+
 const shopsService = {
   createShop,
   getShops,
   getShop,
   deleteShop,
   purchaseCards,
+  proposeExchange,
+  getExchangesOfShop,
+  getMyExchangesOfShop,
 };
 
 module.exports = shopsService;
