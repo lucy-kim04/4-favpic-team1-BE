@@ -35,10 +35,6 @@ cardsRouter.get(
   middlewares.loggedInOnly,
   cardsService.getMyCardOfGallery
 );
-cardsRouter.get(
-  '/me/sales',
-  middlewares.loggedInOnly,
-  cardsService.getMyCardsOfSales
-);
+cardsRouter.get('/me/sales', middlewares.loggedInOnly, cardsService.getMyShops);
 
 module.exports = cardsRouter;

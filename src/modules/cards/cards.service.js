@@ -231,6 +231,61 @@ async function getMyCardsOfSales(req, res, next) {
   }
 }
 
+// 내 상점 목록 조회
+async function getMyShops(req, res, next) {
+  try {
+    const userId = req.userId;
+    const shops = await prisma.shop.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        price: true,
+        cardEditions: {
+          select: { card: { select: { grade: true, id: true, name: true } } },
+        },
+        salesCount: true,
+        _count: { select: { cardEditions: true } },
+        card: {
+          select: {
+            name: true,
+            grade: true,
+            genre: true,
+            imgUrl: true,
+            user: { select: { nickname: true } },
+          },
+        },
+      },
+    });
+
+    const totalEditions = [];
+    const newShops = shops.map((shop) => {
+      totalEditions.push(...shop.cardEditions);
+
+      const newShop = {
+        id: shop.id,
+        imgUrl: shop.card.imgUrl,
+        name: shop.card.name,
+        grade: shop.card.grade,
+        genre: shop.card.genre,
+        nickname: shop.card.user.nickname,
+        price: shop.price,
+        cardEditions: shop.cardEditions,
+        remainingCount: shop._count.cardEditions,
+        salesCount: shop.salesCount,
+      };
+
+      return newShop;
+    });
+    const userSummary = { COMMON: 0, RARE: 0, 'SUPER RARE': 0, LEGENDARY: 0 };
+    totalEditions.forEach((edition) => (userSummary[edition.card.grade] += 1));
+
+    const result = { cards: newShops, userSummary, totalEditions };
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
 // 마이갤러리 카드 상세 조회
 async function getMyCardOfGallery(req, res, next) {
   try {
@@ -280,6 +335,7 @@ const cardsService = {
   getMyCardsOfGallery,
   getMyCardOfGallery,
   getMyCardsOfSales,
+  getMyShops,
 };
 
 module.exports = cardsService;
