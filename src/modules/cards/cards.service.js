@@ -76,8 +76,8 @@ async function getMyCardsOfGallery(req, res, next) {
           grade,
           genre,
           OR: [
-            { name: { contains: keyword, mode: 'insensitive' } },
-            // { description: { contains: keyword, mode: 'insensitive' } },
+            { grade, genre, name: { contains: keyword, mode: 'insensitive' } },
+            { grade, genre, user: { nickname: { contains: keyword } } },
           ],
         },
         orderBy,
