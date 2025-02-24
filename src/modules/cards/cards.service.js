@@ -214,7 +214,8 @@ async function getMyCardsOfSales(req, res, next) {
         nickname: card.user.nickname,
         price: card.price,
         cardEditions: card.cardEditions,
-        reserveCount: card._count.cardEditions,
+        // reserveCount: card._count.cardEditions,
+        remainingCount: card._count.cardEditions,
       };
 
       return newCard;
