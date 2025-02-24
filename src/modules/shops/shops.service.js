@@ -65,7 +65,7 @@ async function getShops(req, res, next) {
       orderBy: queryOrderBy,
       grade: queryGrade,
       genre: queryGenre,
-      onSale: queryOnSale,
+      onSale,
       keyword,
     } = req.query;
 
@@ -83,11 +83,24 @@ async function getShops(req, res, next) {
         : { price: 'asc' };
     const shops = await prisma.shop.findMany({
       where: {
-        card: {
-          grade,
-          genre,
-          OR: [{ name: { contains: keyword, mode: 'insensitive' } }],
-        },
+        OR: [
+          {
+            card: {
+              grade,
+              genre,
+              OR: [{ name: { contains: keyword, mode: 'insensitive' } }],
+            },
+          },
+          {
+            AND: {
+              card: {
+                grade,
+                genre,
+              },
+              user: { nickname: { contains: keyword } },
+            },
+          },
+        ],
       },
       select: {
         id: true,
@@ -108,7 +121,16 @@ async function getShops(req, res, next) {
       orderBy,
     });
 
-    const resData = shops.map((shop) => {
+    let filteredShops;
+    if (onSale === '판매 중') {
+      filteredShops = shops.filter((shop) => shop._count.cardEditions !== 0);
+    } else if (onSale === '판매 완료') {
+      filteredShops = shops.filter((shop) => shop._count.cardEditions === 0);
+    } else {
+      filteredShops = shops;
+    }
+
+    const resData = filteredShops.map((shop) => {
       const newShop = {
         id: shop.id,
         name: shop.card.name,
@@ -319,6 +341,14 @@ async function purchaseCards(req, res, next) {
     });
 
     res.status(201).json(purchase);
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 카드 교환 제안하기
+async function proposeExchange(req, res, next) {
+  try {
   } catch (error) {
     next(error);
   }
