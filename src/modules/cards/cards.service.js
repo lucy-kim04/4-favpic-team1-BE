@@ -212,7 +212,7 @@ async function getMyCardsOfSales(req, res, next) {
     const exchanges = await prisma.exchange.findMany({
       where: {
         AND: [
-          { proposerId: userId },
+          { proposerId: userId, status: 'pending' },
           {
             cardEdition: {
               card: { genre, grade, name: { contains: keyword } },
