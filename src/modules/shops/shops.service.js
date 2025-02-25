@@ -1,5 +1,6 @@
 const { contains } = require('validator');
 const prisma = require('../../db/prisma/client');
+const { use } = require('./shops.controller');
 
 // 상점shop 생성
 async function createShop(req, res, next) {
@@ -393,6 +394,7 @@ async function getExchangesOfShop(req, res, next) {
         id: true,
         cardEdition: {
           select: {
+            id: true,
             card: {
               select: {
                 imgUrl: true,
@@ -413,6 +415,8 @@ async function getExchangesOfShop(req, res, next) {
     const newExchanges = exchanges.map((exchange) => {
       const newExchange = {
         id: exchange.id,
+        editionId: exchange.cardEdition.id,
+        shopId,
         imgUrl: exchange.cardEdition.card.imgUrl,
         name: exchange.cardEdition.card.name,
         price: exchange.cardEdition.card.price,
@@ -468,7 +472,7 @@ async function getMyExchangesOfShop(req, res, next) {
       const newExchange = {
         id: exchange.id,
         editionId: exchange.cardEdition.id,
-        shopId: shopId,
+        shopId,
         imgUrl: exchange.cardEdition.card.imgUrl,
         price: exchange.cardEdition.card.price,
         name: exchange.cardEdition.card.name,
@@ -489,6 +493,53 @@ async function getMyExchangesOfShop(req, res, next) {
   }
 }
 
+// 교환 제안 거절하기 : 거절은 취소와 동일하게 처리
+
+// 상점의 교환 제안 승인하기
+async function approveExchange(req, res, next) {
+  try {
+    const exchangeId = req.params.exchangeId;
+    const userId = req.userId;
+    const { shopId, proposerId, editionId: proposeEditionId } = req.body;
+
+    console.log(exchangeId, shopId, proposeEditionId, userId);
+    await prisma.$transaction(async (tx) => {
+      // #1. exchange status를 approved로 변경
+      await tx.exchange.update({
+        where: { id: exchangeId },
+        data: { status: 'approved' },
+      });
+
+      // #2. 교환 대상인 cardEdition들의 소유자를 변경하고 제안했던 cardEdition의 status를 inPossesion으로 변경
+      // 제안자의 cardEdition 변경
+      // 소유자 변경, status를 inPossesion으로
+      await tx.cardEdition.update({
+        where: { id: proposeEditionId },
+        data: {
+          userId,
+          status: 'inPossesion',
+        },
+      });
+      // shop에 있는 cardEdition 변경
+      // 소유자 변경, shop연결끊기, status를 inPossesion으로
+      const shop = await tx.shop.findUnique({
+        where: { id: shopId },
+        select: { cardEditions: { select: { id: true } } },
+      });
+      const willUpdateCardEditionId = shop.cardEditions[0].id;
+
+      await tx.cardEdition.update({
+        where: { id: willUpdateCardEditionId },
+        data: { userId: proposerId, shopId: null, status: 'inPossesion' },
+      });
+    });
+
+    res.status(200).send('Exchange success');
+  } catch (error) {
+    next(error);
+  }
+}
+
 const shopsService = {
   createShop,
   getShops,
@@ -499,6 +550,7 @@ const shopsService = {
   getExchangesOfShop,
   getMyExchangesOfShop,
   cancelProposeExchange,
+  approveExchange,
 };
 
 module.exports = shopsService;

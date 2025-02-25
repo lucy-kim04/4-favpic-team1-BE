@@ -37,5 +37,10 @@ shopsRouter.put(
   middlewares.loggedInOnly,
   shopsService.cancelProposeExchange
 );
+shopsRouter.post(
+  '/exchanges/:exchangeId/approve',
+  middlewares.loggedInOnly,
+  shopsService.approveExchange
+);
 
 module.exports = shopsRouter;
