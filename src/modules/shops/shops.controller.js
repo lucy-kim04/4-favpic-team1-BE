@@ -17,6 +17,7 @@ shopsRouter.post(
 );
 shopsRouter.get('/', shopsService.getShops);
 shopsRouter.get('/:shopId', middlewares.loggedInOnly, shopsService.getShop);
+shopsRouter.put('/:shopId', shopsService.updateShop);
 shopsRouter.get(
   '/:shopId/exchanges',
   middlewares.loggedInOnly,

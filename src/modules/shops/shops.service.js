@@ -59,6 +59,169 @@ async function createShop(req, res, next) {
   }
 }
 
+// 상점 shop 수정
+async function updateShop(req, res, next) {
+  try {
+    // 요청에서 샵 ID 가져오기, 이건 req에서
+    const shopId = req.params.shopId;
+    const userId = req.userId;
+    const {
+      countToEdit,
+      price,
+      exchangeGrade,
+      exchangeGenre,
+      exchangeDesc,
+      remainingCount,
+    } = req.body;
+
+    const shop = await prisma.shop.findFirst({
+      where: { id: shopId, userId: userId },
+      select: { cardId: true },
+    });
+
+    const cardId = shop.cardId;
+
+    // 재고 수량 확인, 가지고 있는 카드 + 판매중인 카드(현재 샵에서만, 다른 샵 x)
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        cardEditions: {
+          where: {
+            OR: [
+              { cardId, status: 'inPossesion' },
+              { shopId, status: 'onSales' },
+            ],
+          },
+          orderBy: { number: 'asc' },
+        },
+      },
+    });
+
+    const availableQuantity = user.cardEditions.length;
+    console.log('userId', userId);
+    console.log('cardId', cardId);
+    console.log('availableQuantity', availableQuantity);
+    console.log('countToEdit', countToEdit);
+    const isSufficientQuantity = availableQuantity >= countToEdit;
+    if (!isSufficientQuantity) throw new Error('400/Not sufficient quantity');
+
+    // { shopId: shop.id, status: 'onSales' }
+    // if (수정할 개수 < 판매중인 개수) shopID에 연동된 카드들의 값을 변경
+    // else 사용자가 가지고 있는 CardId의 카드중 status가 inPossesion 인걸 변경
+
+    if (countToEdit === remainingCount) {
+      // CASE_1 : 수정할 개수 === 판매중인 개수
+      // 카드 개수를 제외한 나머지 데이터만 변경
+      const updatedShop = await prisma.shop.update({
+        where: { id: shopId },
+        data: {
+          price,
+          exchangeGrade,
+          exchangeGenre,
+          exchangeDesc,
+        },
+      });
+
+      res.status(201).json(updatedShop);
+    } else if (countToEdit < remainingCount) {
+      // CASE_2 : 수정할 개수 < 판매중인 개수
+      const shop = await prisma.$transaction(async (tx) => {
+        // 샵 데이터를 cardEditions 포함해서 가지고옴
+        const shop = await tx.shop.findUnique({
+          where: { id: shopId },
+          include: {
+            cardEditions: {
+              orderBy: { number: 'asc' },
+            },
+          },
+        });
+
+        // 샵에 등록된 카드에디션들을 배열의 끝에서 부터 요청한 개수만큼 상태 변경 ('onSales' -> 'inPossesion')
+        const numberToMinus = remainingCount - countToEdit;
+        const tempCardEditions = shop.cardEditions.slice(-numberToMinus);
+        const editionNumbers = tempCardEditions.map((el) => el.number);
+        const editionData = { shopId: null, status: 'inPossesion' };
+
+        const willUpdateEditionsPromises = editionNumbers.map(
+          async (editionNumber) => {
+            return tx.cardEdition.updateMany({
+              data: editionData,
+              where: { cardId, userId, number: editionNumber },
+            });
+          }
+        );
+
+        await Promise.all(willUpdateEditionsPromises);
+
+        // 그외 나머지 shop 데이터 변경
+        const updatedShop = await tx.shop.update({
+          where: { id: shopId },
+          data: {
+            price,
+            exchangeGrade,
+            exchangeGenre,
+            exchangeDesc,
+            salesCount: countToEdit,
+          },
+        });
+
+        return updatedShop;
+      });
+
+      res.status(201).json(shop);
+    } else {
+      // CASE_3 : 소유중 + 판매중(현재샵) >= 수정할 개수 > 판매중인 개수
+      const shop = await prisma.$transaction(async (tx) => {
+        // 유저가 특정 CardId중 'inPossession'하고 있는 데이터 조회
+        const user = await tx.user.findUnique({
+          where: { id: userId },
+          select: {
+            cardEditions: {
+              where: { cardId, status: 'inPossesion' },
+              orderBy: { number: 'asc' },
+            },
+          },
+        });
+
+        //유저가 들고있는 카드에디션들을 요청한 개수만큼 상태를 inPossession -> onSales 로 변경
+        const numberToAdd = countToEdit - remainingCount;
+        const tempCardEditions = user.cardEditions.slice(0, numberToAdd);
+        const editionNumbers = tempCardEditions.map((el) => el.number);
+        const editionData = { shopId, status: 'onSales' };
+
+        const willUpdateEditionsPromises = editionNumbers.map(
+          async (editionNumber) => {
+            return tx.cardEdition.updateMany({
+              data: editionData,
+              where: { cardId, userId, number: editionNumber },
+            });
+          }
+        );
+
+        await Promise.all(willUpdateEditionsPromises);
+
+        // 그외 나머지 shop 데이터 변경
+        const updatedShop = await tx.shop.update({
+          where: { id: shopId },
+          data: {
+            price,
+            exchangeGrade,
+            exchangeGenre,
+            exchangeDesc,
+            salesCount: countToEdit,
+          },
+        });
+
+        return updatedShop;
+      });
+
+      res.status(201).json(shop);
+    }
+  } catch (error) {
+    next(error);
+  }
+}
+
 // shop 목록 조회
 async function getShops(req, res, next) {
   try {
@@ -158,11 +321,32 @@ async function getShop(req, res, next) {
   try {
     const shopId = req.params.shopId;
 
+    // shop Id를 먼저 조회하는게 나은가?
+    const shopForCardId = await prisma.shop.findUnique({
+      where: { id: shopId },
+      select: {
+        card: true,
+      },
+    });
+    const cardId = shopForCardId.card.id;
+
     const shop = await prisma.shop.findUnique({
       where: { id: shopId },
       select: {
         id: true,
-        user: { select: { nickname: true } },
+        user: {
+          select: {
+            nickname: true,
+            cardEditions: {
+              where: {
+                OR: [
+                  { cardId, status: 'inPossesion' },
+                  { shopId, status: 'onSales' },
+                ],
+              },
+            },
+          },
+        },
         price: true,
         salesCount: true,
         exchangeGrade: true,
@@ -171,6 +355,7 @@ async function getShop(req, res, next) {
         _count: { select: { cardEditions: true } },
         card: {
           select: {
+            id: true,
             name: true,
             grade: true,
             genre: true,
@@ -181,6 +366,8 @@ async function getShop(req, res, next) {
         },
       },
     });
+
+    console.log('cardEditions length', shop.user.cardEditions.length);
 
     const newShop = {
       id: shop.id,
@@ -197,6 +384,7 @@ async function getShop(req, res, next) {
       exchangeGrade: shop.exchangeGrade,
       exchangeGenre: shop.exchangeGenre,
       exchangeDesc: shop.exchangeDesc,
+      availableQuantity: shop.user.cardEditions.length,
     };
 
     res.status(200).json(newShop);
@@ -333,6 +521,9 @@ async function proposeExchange(req, res, next) {
     const shopId = req.params.shopId;
     const content = req.body.content;
     const cardId = req.body.cardId;
+
+    console.log('body', req.body);
+    console.log('content', content);
 
     await prisma.$transaction(async (tx) => {
       // #1. Exchange 생성하기
@@ -551,6 +742,7 @@ const shopsService = {
   getMyExchangesOfShop,
   cancelProposeExchange,
   approveExchange,
+  updateShop,
 };
 
 module.exports = shopsService;
