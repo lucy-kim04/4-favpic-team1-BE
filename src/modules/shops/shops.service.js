@@ -98,10 +98,6 @@ async function updateShop(req, res, next) {
     });
 
     const availableQuantity = user.cardEditions.length;
-    console.log('userId', userId);
-    console.log('cardId', cardId);
-    console.log('availableQuantity', availableQuantity);
-    console.log('countToEdit', countToEdit);
     const isSufficientQuantity = availableQuantity >= countToEdit;
     if (!isSufficientQuantity) throw new Error('400/Not sufficient quantity');
 
@@ -366,8 +362,6 @@ async function getShop(req, res, next) {
         },
       },
     });
-
-    console.log('cardEditions length', shop.user.cardEditions.length);
 
     const newShop = {
       id: shop.id,
