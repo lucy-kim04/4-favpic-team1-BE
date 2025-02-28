@@ -516,9 +516,6 @@ async function proposeExchange(req, res, next) {
     const content = req.body.content;
     const cardId = req.body.cardId;
 
-    console.log('body', req.body);
-    console.log('content', content);
-
     await prisma.$transaction(async (tx) => {
       // #1. Exchange 생성하기
       const exchange = await tx.exchange.create({
