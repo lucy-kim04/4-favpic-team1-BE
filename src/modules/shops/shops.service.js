@@ -544,7 +544,7 @@ async function proposeExchange(req, res, next) {
   }
 }
 
-// 교환 제안 취소하기
+// 교환 제안 취소하기(또는 받은 제안 거절하기)
 async function cancelProposeExchange(req, res, next) {
   const { editionId } = req.body;
   try {
