@@ -2,32 +2,23 @@ const prisma = require('../../db/prisma/client');
 
 /**
  * 알림 보내기
- * notification case
- * - acceptExchange: 상대가 내 교환 제안을 수락(교환 성사) -> 교환된 카드 확인을 위해 '마이갤러리'로 이동
- * - refuseExchange: 상대가 내 교환 제안을 거절(교환 불발) -> 불발된 카드 확인을 위해 '나의 판매 포토카드'로 이동
- * - arriveProposal: 누군가 나에게 교환을 제안
- * - purchaseCard: 내가 포토 카드 구매를 완료
- * - soldMyCard: 내 상점의 포토 카드가 판매됨
- * - soldOut: 내 상점의 포토 카드가 품절
  */
 async function sendNotification(req, res, next) {
   try {
     const loginUserId = req.userId;
-    const {
-      notificationCase,
-      nickname,
-      grade,
-      name,
-      userId,
-      shopId,
-      purchaseCount,
-    } = req.body;
+    const { notificationCase, grade, name, userId, shopId, purchaseCount } =
+      req.body;
+
+    const user = await prisma.user.findUnique({
+      where: { id: loginUserId },
+    });
+    const nickname = user.nickname;
 
     let data;
     switch (notificationCase) {
       // acceptExchange: 상대가 내 교환 제안을 수락(교환 성사) -> 교환된 카드 확인을 위해 '마이갤러리'로 이동
       // 내가 제안한 상대방이 '승인하기'를 성공했을 때 실행
-      case 'acceptExchange':
+      case 'approveExchange':
         data = {
           userId,
           message: `${nickname}님과의 [${grade} | ${name}]의 포토카드 교환이 성사되었습니다.`,
@@ -65,7 +56,7 @@ async function sendNotification(req, res, next) {
       // 누군가가 내 상점의 포토 카드 구매를 성공했을 때 실행
       case 'soldMyCard':
         data = {
-          userId: loginUserId,
+          userId,
           message: `${nickname}님이 [${grade} | ${name}]을 ${purchaseCount}장 구매했습니다.`,
           link: `/${shopId}`,
         };
@@ -74,7 +65,7 @@ async function sendNotification(req, res, next) {
       // 누군가가 내 상점의 포토 카드 구매를 성공했을 때, 내 상점의 cardEditions가 0이면 실행
       case 'soldOut':
         data = {
-          userId: loginUserId,
+          userId,
           message: `[${grade} | ${name}]이 품절되었습니다.`,
           link: `/${shopId}`,
         };

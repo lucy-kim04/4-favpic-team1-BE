@@ -332,6 +332,7 @@ async function getShop(req, res, next) {
         id: true,
         user: {
           select: {
+            id: true,
             nickname: true,
             cardEditions: {
               where: {
@@ -365,6 +366,7 @@ async function getShop(req, res, next) {
 
     const newShop = {
       id: shop.id,
+      sellerId: shop.user.id,
       seller: shop.user.nickname,
       name: shop.card.name,
       imgUrl: shop.card.imgUrl,
@@ -502,7 +504,11 @@ async function purchaseCards(req, res, next) {
       return purchase;
     });
 
-    res.status(201).json(purchase);
+    // 매진인지 확인하기
+    const isSoldOut = purchaseCount === remainingCount;
+    const newPurchase = { ...purchase, isSoldOut };
+
+    res.status(201).json(newPurchase);
   } catch (error) {
     next(error);
   }
