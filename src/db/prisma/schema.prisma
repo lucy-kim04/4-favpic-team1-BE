@@ -14,19 +14,20 @@ datasource db {
 }
 
 model User {
-  id                String        @id @default(uuid())
-  email             String        @unique
+  id                String         @id @default(uuid())
+  email             String         @unique
   encryptedPassword String
-  nickname          String        @unique
+  nickname          String         @unique
   point             Int
   lastDrawingTime   DateTime?
   cards             Card[]
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
   cardEditions      CardEdition[]
   shops             Shop[]
   Purchase          Purchase[]
   exchanges         Exchange[]
+  notifications     Notification[]
 }
 
 model Card {
@@ -99,6 +100,15 @@ model Exchange {
   proposer    User           @relation(fields: [proposerId], references: [id])
   createdAt   DateTime       @default(now())
   cardEdition CardEdition?
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  message   String
+  link      String
+  createdAt DateTime @default(now())
 }
 
 enum EditionStatus {
