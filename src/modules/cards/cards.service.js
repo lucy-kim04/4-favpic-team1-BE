@@ -1,6 +1,4 @@
-const { contains } = require('validator');
 const prisma = require('../../db/prisma/client');
-const { create } = require('domain');
 
 // 카드 발행
 async function createCard(req, res, next) {
