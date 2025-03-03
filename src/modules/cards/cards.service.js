@@ -221,6 +221,7 @@ async function getMyCardsOfSales(req, res, next) {
       select: {
         createdAt: true,
         id: true,
+        shopId: true,
         cardEdition: true,
         cardEdition: {
           select: {
@@ -245,6 +246,7 @@ async function getMyCardsOfSales(req, res, next) {
 
       const newExchange = {
         id: exchange.id,
+        shopId: exchange.shopId,
         imgUrl: exchange.cardEdition.card.imgUrl,
         name: exchange.cardEdition.card.name,
         grade: exchange.cardEdition.card.grade,
