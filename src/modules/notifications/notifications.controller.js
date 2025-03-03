@@ -14,5 +14,10 @@ notificationsRouter.get(
   middlewares.loggedInOnly,
   notificationsService.getNotificationsOfMe
 );
+notificationsRouter.patch(
+  '/:notificationId',
+  middlewares.loggedInOnly,
+  notificationsService.setToTrueIsReadOfNotification
+);
 
 module.exports = notificationsRouter;

@@ -99,9 +99,50 @@ async function getNotificationsOfMe(req, res, next) {
   }
 }
 
+// 알림(들)을 읽음으로 변경
+async function setToTrueIsReadOfNotifications(req, res, next) {
+  try {
+    const { idsForSet } = req.body;
+
+    const setToTruePromises = idsForSet.map(
+      async (id) =>
+        await prisma.notification.update({
+          where: { id },
+          data: { isRead: true },
+        })
+    );
+
+    await Promise.all(setToTruePromises);
+
+    res.status(200).res('SetToTrueIsRead success');
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 특정 알림을 읽음으로 변경
+async function setToTrueIsReadOfNotification(req, res, next) {
+  try {
+    console.log(req.params);
+    const id = req.params.notificationId;
+    console.log(id);
+
+    await prisma.notification.update({
+      where: { id },
+      data: { isRead: true },
+    });
+
+    res.status(200).send('SetToTrueIsRead success');
+  } catch (error) {
+    next(error);
+  }
+}
+
 const notificationsService = {
   sendNotification,
   getNotificationsOfMe,
+  setToTrueIsReadOfNotifications,
+  setToTrueIsReadOfNotification,
 };
 
 module.exports = notificationsService;
