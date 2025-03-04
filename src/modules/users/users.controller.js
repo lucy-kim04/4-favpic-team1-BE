@@ -10,5 +10,11 @@ usersRouter.post('/refresh-token', userService.refreshToken);
 usersRouter.post('/check-nickname', userService.checkIsAvailableNickname);
 usersRouter.get('/', userService.getUsers);
 usersRouter.get('/me', middlewares.loggedInOnly, userService.getMe);
+usersRouter.put('/me/point', middlewares.loggedInOnly, userService.addPoint);
+usersRouter.put(
+  '/me/record-time',
+  middlewares.loggedInOnly,
+  userService.recordLastDrawingTime
+);
 
 module.exports = usersRouter;
