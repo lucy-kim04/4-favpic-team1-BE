@@ -49,6 +49,8 @@ async function getMyCardsOfGallery(req, res, next) {
       grade: queryGrade,
       genre: queryGenre,
       keyword,
+      skip = 0,
+      limit = 10,
     } = req.query;
 
     const genre = queryGenre !== '장르' ? queryGenre : undefined;
@@ -63,7 +65,7 @@ async function getMyCardsOfGallery(req, res, next) {
         : { price: 'asc' };
 
     // $transaction 사용
-    const cards = await prisma.$transaction(async (tx) => {
+    const [cards, searchCount] = await prisma.$transaction(async (tx) => {
       const cardIds = await tx.cardEdition.groupBy({
         where: { userId },
         by: ['cardId'],
@@ -80,6 +82,8 @@ async function getMyCardsOfGallery(req, res, next) {
             { grade, genre, user: { nickname: { contains: keyword } } },
           ],
         },
+        skip: parseInt(skip),
+        take: parseInt(limit),
         orderBy,
         select: {
           id: true,
@@ -101,8 +105,21 @@ async function getMyCardsOfGallery(req, res, next) {
           },
         },
       });
+      // skip, limit이 반영되지 않은 전체 검색 결과 개수
+      const searchCount = await tx.card.count({
+        where: {
+          id: { in: cardIdsArray },
+          cardEditions: { some: { status: 'inPossesion' } },
+          grade,
+          genre,
+          OR: [
+            { grade, genre, name: { contains: keyword, mode: 'insensitive' } },
+            { grade, genre, user: { nickname: { contains: keyword } } },
+          ],
+        },
+      });
 
-      return cards;
+      return [cards, searchCount];
     });
 
     const totalEditions = [];
@@ -126,7 +143,7 @@ async function getMyCardsOfGallery(req, res, next) {
     const userSummary = { COMMON: 0, RARE: 0, 'SUPER RARE': 0, LEGENDARY: 0 };
     totalEditions.forEach((edition) => (userSummary[edition.card.grade] += 1));
 
-    const result = { cards: resData, userSummary };
+    const result = { cards: resData, userSummary, searchCount };
 
     res.status(200).json(result);
   } catch (error) {
@@ -147,6 +164,8 @@ async function getMyCardsOfSales(req, res, next) {
       onSale,
       howToSale,
       keyword,
+      skip = 0,
+      limit = 10,
     } = req.query;
 
     const genre = queryGenre !== '장르' ? queryGenre : undefined;
@@ -204,8 +223,6 @@ async function getMyCardsOfSales(req, res, next) {
 
       return newShop;
     });
-
-    console.log(newShops);
 
     const exchanges = await prisma.exchange.findMany({
       where: {
@@ -280,10 +297,19 @@ async function getMyCardsOfSales(req, res, next) {
     // 전체를 최신순으로 정렬해서 섞어줌
     filteredCards.sort((a, b) => b.createdAt - a.createdAt);
 
+    // skip, limit 반영전의 개수 저장
+    const searchCount = filteredCards.length;
+
+    // skip, limit을 반영
+    const finalCards = filteredCards.slice(
+      parseInt(skip),
+      parseInt(skip) + parseInt(limit)
+    );
+
     const userSummary = { COMMON: 0, RARE: 0, 'SUPER RARE': 0, LEGENDARY: 0 };
     totalEditions.forEach((edition) => (userSummary[edition.card.grade] += 1));
 
-    const result = { cards: filteredCards, userSummary };
+    const result = { cards: finalCards, userSummary, searchCount };
 
     res.status(200).json(result);
   } catch (error) {
