@@ -153,6 +153,41 @@ async function checkIsAvailableNickname(req, res, next) {
   }
 }
 
+// 포인트 추가
+async function addPoint(req, res, next) {
+  try {
+    const userId = req.userId;
+    const point = req.body.point;
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { point: { increment: point } },
+    });
+
+    res.status(200).send('AddPoint success');
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 랜덤 박스 추첨 시각을 기록
+async function recordLastDrawingTime(req, res, next) {
+  try {
+    const userId = req.userId;
+
+    const time = new Date().getTime();
+    console.log(time);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { lastDrawingTime: new Date() },
+    });
+
+    res.status(200).send('Save success');
+  } catch (error) {
+    next(error);
+  }
+}
+
 const userService = {
   signUp,
   logIn,
@@ -160,6 +195,8 @@ const userService = {
   getMe,
   getUsers,
   checkIsAvailableNickname,
+  addPoint,
+  recordLastDrawingTime,
 };
 
 module.exports = userService;

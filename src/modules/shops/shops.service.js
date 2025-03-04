@@ -227,9 +227,11 @@ async function getShops(req, res, next) {
       genre: queryGenre,
       onSale,
       keyword,
+      limit,
+      skip,
     } = req.query;
 
-    console.log(keyword);
+    console.log(limit, skip);
 
     const genre = queryGenre !== '장르' ? queryGenre : undefined;
     const grade = queryGrade !== '등급' ? queryGrade : undefined;
@@ -262,6 +264,8 @@ async function getShops(req, res, next) {
           },
         ],
       },
+      skip: parseInt(skip),
+      take: parseInt(limit),
       select: {
         id: true,
         price: true,
