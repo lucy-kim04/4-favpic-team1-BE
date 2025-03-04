@@ -17,7 +17,7 @@ async function sendNotification(req, res, next) {
     let data;
     switch (notificationCase) {
       // acceptExchange: 상대가 내 교환 제안을 수락(교환 성사) -> 교환된 카드 확인을 위해 '마이갤러리'로 이동
-      // 내가 제안한 상대방이 '승인하기'를 성공했을 때 실행
+      // 내가 교환을 제안한 상대방이 '승인하기'를 성공했을 때 실행
       case 'approveExchange':
         data = {
           userId,
@@ -57,7 +57,7 @@ async function sendNotification(req, res, next) {
       case 'soldMyCard':
         data = {
           userId,
-          message: `${nickname}님이 [${grade} | ${name}]을 ${purchaseCount}장 구매했습니다.`,
+          message: `${nickname}님이 [${grade} | ${name}]을(를) ${purchaseCount}장 구매했습니다.`,
           link: `/${shopId}`,
         };
         break;
@@ -66,7 +66,7 @@ async function sendNotification(req, res, next) {
       case 'soldOut':
         data = {
           userId,
-          message: `[${grade} | ${name}]이 품절되었습니다.`,
+          message: `[${grade} | ${name}]이(가) 품절되었습니다.`,
           link: `/${shopId}`,
         };
         break;
@@ -90,6 +90,7 @@ async function getNotificationsOfMe(req, res, next) {
 
     const notifications = await prisma.notification.findMany({
       where: { userId },
+      orderBy: { createdAt: 'desc' },
     });
 
     res.status(200).json(notifications);
@@ -98,9 +99,50 @@ async function getNotificationsOfMe(req, res, next) {
   }
 }
 
+// 알림(들)을 읽음으로 변경
+async function setToTrueIsReadOfNotifications(req, res, next) {
+  try {
+    const { idsForSet } = req.body;
+
+    const setToTruePromises = idsForSet.map(
+      async (id) =>
+        await prisma.notification.update({
+          where: { id },
+          data: { isRead: true },
+        })
+    );
+
+    await Promise.all(setToTruePromises);
+
+    res.status(200).res('SetToTrueIsRead success');
+  } catch (error) {
+    next(error);
+  }
+}
+
+// 특정 알림을 읽음으로 변경
+async function setToTrueIsReadOfNotification(req, res, next) {
+  try {
+    console.log(req.params);
+    const id = req.params.notificationId;
+    console.log(id);
+
+    await prisma.notification.update({
+      where: { id },
+      data: { isRead: true },
+    });
+
+    res.status(200).send('SetToTrueIsRead success');
+  } catch (error) {
+    next(error);
+  }
+}
+
 const notificationsService = {
   sendNotification,
   getNotificationsOfMe,
+  setToTrueIsReadOfNotifications,
+  setToTrueIsReadOfNotification,
 };
 
 module.exports = notificationsService;
