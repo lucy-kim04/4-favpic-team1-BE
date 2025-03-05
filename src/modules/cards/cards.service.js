@@ -140,10 +140,8 @@ async function getMyCardsOfGallery(req, res, next) {
 
       return newCard;
     });
-    const userSummary = { COMMON: 0, RARE: 0, 'SUPER RARE': 0, LEGENDARY: 0 };
-    totalEditions.forEach((edition) => (userSummary[edition.card.grade] += 1));
 
-    const result = { cards: resData, userSummary, searchCount };
+    const result = { cards: resData, searchCount };
 
     res.status(200).json(result);
   } catch (error) {
@@ -308,10 +306,7 @@ async function getMyCardsOfSales(req, res, next) {
       parseInt(skip) + parseInt(limit)
     );
 
-    const userSummary = { COMMON: 0, RARE: 0, 'SUPER RARE': 0, LEGENDARY: 0 };
-    totalEditions.forEach((edition) => (userSummary[edition.card.grade] += 1));
-
-    const result = { cards: finalCards, userSummary, searchCount };
+    const result = { cards: finalCards, searchCount };
 
     res.status(200).json(result);
   } catch (error) {
@@ -364,10 +359,8 @@ async function getMyShops(req, res, next) {
 
       return newShop;
     });
-    const userSummary = { COMMON: 0, RARE: 0, 'SUPER RARE': 0, LEGENDARY: 0 };
-    totalEditions.forEach((edition) => (userSummary[edition.card.grade] += 1));
 
-    const result = { cards: newShops, userSummary, totalEditions };
+    const result = { cards: newShops, totalEditions };
     res.status(200).json(result);
   } catch (error) {
     next(error);

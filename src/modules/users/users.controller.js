@@ -16,5 +16,15 @@ usersRouter.put(
   middlewares.loggedInOnly,
   userService.recordLastDrawingTime
 );
+usersRouter.get(
+  '/me/gallery-summary',
+  middlewares.loggedInOnly,
+  userService.getMyGallerySummary
+);
+usersRouter.get(
+  '/me/sales-summary',
+  middlewares.loggedInOnly,
+  userService.getMySalesSummary
+);
 
 module.exports = usersRouter;

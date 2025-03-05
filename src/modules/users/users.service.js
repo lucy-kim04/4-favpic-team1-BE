@@ -2,6 +2,7 @@ const validator = require('validator');
 const prisma = require('../../db/prisma/client');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { pid } = require('process');
 
 const jwtSecretKey = process.env.JWT_SECRET_KEY;
 
@@ -188,6 +189,86 @@ async function recordLastDrawingTime(req, res, next) {
   }
 }
 
+// '마이갤러리' 상단의 summary count 조회
+async function getMyGallerySummary(req, res, next) {
+  try {
+    const userId = req.userId;
+    console.log(userId);
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        cardEditions: {
+          where: { status: 'inPossesion' },
+          select: { card: { select: { grade: true } } },
+        },
+        _count: {
+          select: { cardEditions: { where: { status: 'inPossesion' } } },
+        },
+      },
+    });
+
+    const myGallerySummary = {
+      COMMON: 0,
+      RARE: 0,
+      'SUPER RARE': 0,
+      LEGENDARY: 0,
+    };
+    user.cardEditions.forEach(
+      (edition) => (myGallerySummary[edition.card.grade] += 1)
+    );
+
+    const totalCount = user._count.cardEditions;
+
+    res.status(200).json({ userSummary: myGallerySummary, totalCount });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// '나의 판매 포토카드' 상단의 summary count 조회
+async function getMySalesSummary(req, res, next) {
+  try {
+    const userId = req.userId;
+    console.log(userId);
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        cardEditions: {
+          where: { NOT: { status: 'inPossesion' } },
+          select: { card: { select: { grade: true, name: true, id: true } } },
+        },
+        _count: {
+          select: {
+            cardEditions: { where: { NOT: { status: 'inPossesion' } } },
+          },
+        },
+      },
+    });
+
+    const myGallerySummary = {
+      COMMON: 0,
+      RARE: 0,
+      'SUPER RARE': 0,
+      LEGENDARY: 0,
+    };
+    user.cardEditions.forEach(
+      (edition) => (myGallerySummary[edition.card.grade] += 1)
+    );
+
+    const totalCount = user._count.cardEditions;
+
+    res.status(200).json({
+      userSummary: myGallerySummary,
+      totalCount,
+      cardEditions: user.cardEditions,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 const userService = {
   signUp,
   logIn,
@@ -197,6 +278,8 @@ const userService = {
   checkIsAvailableNickname,
   addPoint,
   recordLastDrawingTime,
+  getMyGallerySummary,
+  getMySalesSummary,
 };
 
 module.exports = userService;
