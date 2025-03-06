@@ -25,7 +25,7 @@ model User {
   updatedAt         DateTime       @updatedAt
   cardEditions      CardEdition[]
   shops             Shop[]
-  Purchase          Purchase[]
+  purchases         Purchase[]
   exchanges         Exchange[]
   notifications     Notification[]
 }
