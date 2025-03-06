@@ -526,6 +526,8 @@ async function proposeExchange(req, res, next) {
     const content = req.body.content;
     const cardId = req.body.cardId;
 
+    console.log(shopId, cardId, content);
+
     await prisma.$transaction(async (tx) => {
       // #1. Exchange 생성하기
       const exchange = await tx.exchange.create({
@@ -541,6 +543,7 @@ async function proposeExchange(req, res, next) {
       const editions = await tx.cardEdition.findMany({
         where: { userId, cardId },
       });
+      console.log(editions);
       const editionId = editions[0].id;
       await tx.cardEdition.update({
         where: { id: editionId },
