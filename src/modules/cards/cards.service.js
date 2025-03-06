@@ -7,7 +7,7 @@ async function createCard(req, res, next) {
     const intPrice = Number(req.body.price);
     const intIssuedQuantity = Number(req.body.issuedQuantity);
     const newImgUrl = !!req.file
-      ? 'http://localhost:5050/static/' + req.file.filename
+      ? 'https://four-favpic-team1-be.onrender.com/static/' + req.file.filename
       : undefined;
     req.body.price = intPrice;
     req.body.issuedQuantity = intIssuedQuantity;
